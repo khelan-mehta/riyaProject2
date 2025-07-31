@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block title %}User Dashboard - Vehicle Parking App{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Flashed Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-car text-primary"></i> My Dashboard</h2>
+        <div class="text-end">
+            <small class="text-muted">Welcome back, {{ session.username }}!</small>
+        </div>
+    </div>
+
+    <!-- Current Reservations -->
+    {% if reservations %}
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5><i class="fas fa-clock"></i> Active Reservations</h5>
+        </div>
+        <div class="card-body">
+            <div class="row" id="reservationsContainer">
+                {% for reservation in reservations %}
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="card-title text-warning">
+                                        <i class="fas fa-map-marker-alt"></i> {{ reservation.prime_location_name }}
+                                    </h6>
+                                    <p class="card-text">
+                                        <strong>Spot #{{ reservation.spot_number }}</strong><br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock"></i> Parked since: 
+                                            {{ reservation.parking_timestamp }}
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="text-end">
+                                    <div class="badge bg-warning text-dark mb-2">OCCUPIED</div>
+                                    <div class="text-success fw-bold">₹{{ "%.2f"|format(reservation.price) }}/hr</div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <a href="{{ url_for('release_spot', reservation_id=reservation.id) }}" 
+                                   class="btn btn-danger btn-sm w-100"
+                                   onclick="return confirm('Are you sure you want to release this parking spot?')">
+                                    <i class="fas fa-sign-out-alt"></i> Release Spot
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card mb-4" id="reservationsContainer">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-car fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Active Reservations</h5>
+            <p class="text-muted">Book a parking spot below!</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Available Parking Lots -->
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-search"></i> Available Parking Lots</h5>
+        </div>
+        <div class="card-body">
+            {% if lots %}
+            <div class="row" id="parkingLots">
+                {% for lot in lots %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card parking-lot-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h6 class="card-title">
+                                    <i class="fas fa-building text-primary"></i> 
+                                    {{ lot.prime_location_name }}
+                                </h6>
+                                <div class="text-end">
+                                    <div class="badge bg-success">{{ lot.available_spots }} Available</div>
+                                </div>
+                            </div>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-map-marker-alt"></i> {{ lot.address }}<br>
+                                    <i class="fas fa-map-pin"></i> PIN: {{ lot.pin_code }}
+                                </small>
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <span class="text-success fw-bold">₹{{ "%.2f"|format(lot.price) }}</span>
+                                    <small class="text-muted">/hour</small>
+                                </div>
+                                <div>
+                                    <small class="text-muted">
+                                        {{ lot.available_spots }}/{{ lot.total_spots }} spots
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="progress mb-3" style="height: 6px;">
+                                {% set availability_percent = (lot.available_spots / lot.total_spots * 100) if lot.total_spots > 0 else 0 %}
+                                <div class="progress-bar bg-success" 
+                                     style="width: {{ availability_percent }}%"></div>
+                            </div>
+                            <div class="d-grid">
+                                {% if lot.available_spots > 0 %}
+                                    <a href="{{ url_for('book_spot', lot_id=lot.id) }}" 
+                                       class="btn btn-primary"
+                                       onclick="return confirm('Book a parking spot at {{ lot.prime_location_name }}?')">
+                                        <i class="fas fa-car"></i> Book Now
+                                    </a>
+                                {% else %}
+                                    <button class="btn btn-secondary" disabled>
+                                        <i class="fas fa-ban"></i> Fully Occupied
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5" id="parkingLots">
+                <i class="fas fa-car fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Parking Lots Available</h5>
+                <p class="text-muted">Check back later for available parking spots</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Parking History -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5><i class="fas fa-history"></i> My Parking History</h5>
+        </div>
+        <div class="card-body">
+            {% if history %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Spot</th>
+                            <th>Duration</th>
+                            <th>Cost</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in history %}
+                        <tr>
+                            <td>{{ record.prime_location_name }}</td>
+                            <td>#{{ record.spot_number }}</td>
+                            <td>{{ "%.2f"|format(record.duration_hours) }} hours</td>
+                            <td class="text-success">₹{{ "%.2f"|format(record.parking_cost) }}</td>
+                            <td><small class="text-muted">{{ record.leaving_timestamp }}</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-outline-primary btn-sm" disabled>
+                    <i class="fas fa-download"></i> Export History (Coming Soon)
+                </button>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Parking History</h5>
+                <p class="text-muted">Your parking history will appear here.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-car fa-2x text-primary mb-2"></i>
+                    <h5 id="activeBookings">{{ reservations|length }}</h5>
+                    <small class="text-muted">Active Bookings</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-building fa-2x text-success mb-2"></i>
+                    <h5 id="availableLots">{{ lots|length }}</h5>
+                    <small class="text-muted">Available Lots</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                    <h5 id="totalSpots">-</h5>
+                    <small class="text-muted">Total Available Spots</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate total available spots
+    let totalSpots = 0;
+    {% for lot in lots %}
+        totalSpots += {{ lot.available_spots }};
+    {% endfor %}
+    document.getElementById('totalSpots').textContent = totalSpots;
+
+    // Auto-refresh parking lots and reservations every 30 seconds
+    setInterval(function() {
+        // Fetch updated lots
+        fetch('/api/lots')
+            .then(response => response.json())
+            .then(data => {
+                const lotsContainer = document.getElementById('parkingLots');
+                let totalSpots = 0;
+                lotsContainer.innerHTML = '';
+                if (data.length === 0) {
+                    lotsContainer.innerHTML = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-car fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Parking Lots Available</h5>
+                            <p class="text-muted">Check back later for available parking spots</p>
+                        </div>
+                    `;
+                } else {
+                    data.forEach(lot => {
+                        totalSpots += lot.available_spots;
+                        lotsContainer.innerHTML += `
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card parking-lot-card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <h6 class="card-title">
+                                                <i class="fas fa-building text-primary"></i> ${lot.prime_location_name}
+                                            </h6>
+                                            <div class="text-end">
+                                                <div class="badge bg-success">${lot.available_spots} Available</div>
+                                            </div>
+                                        </div>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <i class="fas fa-map-marker-alt"></i> ${lot.address}<br>
+                                                <i class="fas fa-map-pin"></i> PIN: ${lot.pin_code}
+                                            </small>
+                                        </p>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <div>
+                                                <span class="text-success fw-bold">₹${lot.price.toFixed(2)}</span>
+                                                <small class="text-muted">/hour</small>
+                                            </div>
+                                            <div>
+                                                <small class="text-muted">${lot.available_spots}/${lot.total_spots} spots</small>
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-3" style="height: 6px;">
+                                            <div class="progress-bar bg-success" style="width: ${(lot.available_spots / lot.total_spots * 100)}%"></div>
+                                        </div>
+                                        <div class="d-grid">
+                                            ${lot.available_spots > 0 ? `
+                                                <a href="/book_spot/${lot.id}" class="btn btn-primary" 
+                                                   onclick="return confirm('Book a parking spot at ${lot.prime_location_name}?')">
+                                                    <i class="fas fa-car"></i> Book Now
+                                                </a>
+                                            ` : `
+                                                <button class="btn btn-secondary" disabled>
+                                                    <i class="fas fa-ban"></i> Fully Occupied
+                                                </button>
+                                            `}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('totalSpots').textContent = totalSpots;
+                document.getElementById('availableLots').textContent = data.length;
+            })
+            .catch(error => console.error('Error fetching lots:', error));
+
+        // Fetch updated reservations
+        fetch('/api/reservations')
+            .then(response => response.json())
+            .then(data => {
+                const reservationsContainer = document.getElementById('reservationsContainer');
+                reservationsContainer.parentElement.parentElement.innerHTML = '';
+                if (data.length === 0) {
+                    reservationsContainer.parentElement.parentElement.innerHTML = `
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-car fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Active Reservations</h5>
+                            <p class="text-muted">Book a parking spot below!</p>
+                        </div>
+                    `;
+                } else {
+                    reservationsContainer.innerHTML = '';
+                    data.forEach(reservation => {
+                        reservationsContainer.innerHTML += `
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-warning">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="card-title text-warning">
+                                                    <i class="fas fa-map-marker-alt"></i> ${reservation.prime_location_name}
+                                                </h6>
+                                                <p class="card-text">
+                                                    <strong>Spot #${reservation.spot_number}</strong><br>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-clock"></i> Parked since: ${reservation.parking_timestamp}
+                                                    </small>
+                                                </p>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="badge bg-warning text-dark mb-2">OCCUPIED</div>
+                                                <div class="text-success fw-bold">₹${reservation.price.toFixed(2)}/hr</div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <a href="/release_spot/${reservation.id}" 
+                                               class="btn btn-danger btn-sm w-100"
+                                               onclick="return confirm('Are you sure you want to release this parking spot?')">
+                                                <i class="fas fa-sign-out-alt"></i> Release Spot
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                document.getElementById('activeBookings').textContent = data.length;
+            })
+            .catch(error => console.error('Error fetching reservations:', error));
+    }, 30000);
+});
+</script>
+{% endblock %}

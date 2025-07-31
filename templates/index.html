@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Vehicle Parking App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card text-center">
+            <div class="card-body p-5">
+                <i class="fas fa-car fa-4x text-primary mb-4"></i>
+                <h1 class="card-title mb-4">Welcome to ParkEasy</h1>
+                <p class="card-text lead mb-4">
+                    Your smart solution for vehicle parking management. 
+                    Find, book, and manage parking spots with ease.
+                </p>
+                
+                <div class="row mt-5">
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-search fa-2x text-primary mb-3"></i>
+                            <h5>Find Parking</h5>
+                            <p class="text-muted">Locate available parking spots near you</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-mobile-alt fa-2x text-success mb-3"></i>
+                            <h5>Book Instantly</h5>
+                            <p class="text-muted">Reserve your spot with just one click</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="text-center">
+                            <i class="fas fa-clock fa-2x text-info mb-3"></i>
+                            <h5>Track Time</h5>
+                            <p class="text-muted">Monitor your parking duration and costs</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if not session.user_id %}
+                <div class="mt-4">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                </div>
+                {% else %}
+                    {% if session.is_admin %}
+                    <div class="mt-4">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-tachometer-alt"></i> Go to Admin Dashboard
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="mt-4">
+                        <a href="{{ url_for('user_dashboard') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-car"></i> Go to Dashboard
+                        </a>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="row mt-5">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-users text-primary"></i> For Users
+                </h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Easy registration and login</li>
+                    <li><i class="fas fa-check text-success"></i> Browse available parking lots</li>
+                    <li><i class="fas fa-check text-success"></i> Instant spot booking</li>
+                    <li><i class="fas fa-check text-success"></i> Real-time cost tracking</li>
+                    <li><i class="fas fa-check text-success"></i> Quick spot release</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-cog text-primary"></i> For Administrators
+                </h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Create and manage parking lots</li>
+                    <li><i class="fas fa-check text-success"></i> Monitor all parking spots</li>
+                    <li><i class="fas fa-check text-success"></i> View user statistics</li>
+                    <li><i class="fas fa-check text-success"></i> Track revenue and usage</li>
+                    <li><i class="fas fa-check text-success"></i> Comprehensive dashboard</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

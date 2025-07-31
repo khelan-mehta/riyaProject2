@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Vehicle Parking App{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tachometer-alt text-primary"></i> Admin Dashboard</h2>
+    <a href="{{ url_for('create_lot') }}" class="btn btn-success">
+        <i class="fas fa-plus"></i> Create New Parking Lot
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stats-card">
+            <i class="fas fa-building fa-2x mb-2"></i>
+            <h3>{{ lots|length }}</h3>
+            <p>Total Parking Lots</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <i class="fas fa-users fa-2x mb-2"></i>
+            <h3>{{ total_users }}</h3>
+            <p>Registered Users</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stats-card">
+            <i class="fas fa-car fa-2x mb-2"></i>
+            <h3>{{ active_reservations }}</h3>
+            <p>Active Reservations</p>
+        </div>
+    </div>
+</div>
+
+<!-- Parking Lots Management -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-building"></i> Parking Lots Management</h5>
+    </div>
+    <div class="card-body">
+        {% if lots %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Location Name</th>
+                        <th>Address</th>
+                        <th>Price/Hour</th>
+                        <th>Total Spots</th>
+                        <th>Available</th>
+                        <th>Occupied</th>
+                        <th>Occupancy Rate</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lot in lots %}
+                    <tr>
+                        <td>{{ lot.id }}</td>
+                        <td>
+                            <strong>{{ lot.prime_location_name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ lot.pin_code }}</small>
+                        </td>
+                        <td>
+                            <small>{{ lot.address }}</small>
+                        </td>
+                        <td class="text-success">
+                            <strong>₹{{ "%.2f"|format(lot.price) }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ lot.total_spots or 0 }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">{{ lot.available_spots or 0 }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-danger">{{ lot.occupied_spots or 0 }}</span>
+                        </td>
+                        <td>
+                            {% if lot.total_spots and lot.total_spots > 0 %}
+                                {% set occupancy = ((lot.occupied_spots or 0) / lot.total_spots * 100) %}
+                                <div class="progress" style="width: 100px;">
+                                    <div class="progress-bar 
+                                        {% if occupancy < 50 %}bg-success
+                                        {% elif occupancy < 80 %}bg-warning
+                                        {% else %}bg-danger{% endif %}" 
+                                        style="width: {{ occupancy }}%">
+                                        {{ "%.1f"|format(occupancy) }}%
+                                    </div>
+                                </div>
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="viewLotDetails({{ lot.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="editLot({{ lot.id }})">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% if (lot.occupied_spots or 0) == 0 %}
+                                <button class="btn btn-outline-danger" onclick="deleteLot({{ lot.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-building fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No Parking Lots Created</h5>
+            <p class="text-muted">Start by creating your first parking lot</p>
+            <a href="{{ url_for('create_lot') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Parking Lot
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h5><i class="fas fa-clock"></i> Recent Activity</h5>
+    </div>
+    <div class="card-body">
+        <div id="recentActivity">
+            <div class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lot Details Modal -->
+<div class="modal fade" id="lotDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Parking Lot Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="lotDetailsContent">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewLotDetails(lotId) {
+    // For demo purposes, show basic info
+    const modal = new bootstrap.Modal(document.getElementById('lotDetailsModal'));
+    document.getElementById('lotDetailsContent').innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-building fa-3x text-primary mb-3"></i>
+            <h5>Parking Lot #${lotId}</h5>
+            <p class="text-muted">Detailed view functionality can be implemented here</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-car text-success fa-2x mb-2"></i>
+                            <h6>Available Spots</h6>
+                            <h4 class="text-success">View spot details</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-line text-info fa-2x mb-2"></i>
+                            <h6>Revenue</h6>
+                            <h4 class="text-info">Track earnings</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.show();
+}
+
+function editLot(lotId) {
+    alert('Edit functionality for lot #' + lotId + ' can be implemented here');
+}
+
+function deleteLot(lotId) {
+    if (confirm('Are you sure you want to delete this parking lot? This action cannot be undone.')) {
+        alert('Delete functionality for lot #' + lotId + ' can be implemented here');
+    }
+}
+
+// Load recent activity (demo)
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        document.getElementById('recentActivity').innerHTML = `
+            <div class="list-group list-group-flush">
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-user-plus text-success me-2"></i>
+                        New user registered: <strong>john_doe</strong>
+                    </div>
+                    <small class="text-muted">2 hours ago</small>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-car text-primary me-2"></i>
+                        Parking spot booked at <strong>Mall Parking</strong>
+                    </div>
+                    <small class="text-muted">3 hours ago</small>
+                </div>
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-building text-info me-2"></i>
+                        New parking lot created: <strong>City Center</strong>
+                    </div>
+                    <small class="text-muted">1 day ago</small>
+                </div>
+            </div>
+        `;
+    }, 1000);
+});
+</script>
+{% endblock %}

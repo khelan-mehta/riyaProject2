@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Vehicle Parking App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-plus fa-3x text-primary mb-3"></i>
+                    <h3 class="card-title">Create Account</h3>
+                    <p class="text-muted">Join ParkEasy today</p>
+                </div>
+
+                <!-- Display flashed messages for server-side errors -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" id="registerForm" novalidate>
+                    <!-- Add CSRF token if using Flask-WTF -->
+                    {{ form.hidden_tag() if form else '' }}
+
+                    <div class="mb-3">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user"></i> Username *
+                        </label>
+                        <input type="text" class="form-control" id="username" name="username" required 
+                               minlength="3" maxlength="20" pattern="[a-zA-Z0-9]+" value="{{ form.username.data if form else '' }}">
+                        <div class="form-text">3-20 characters, letters and numbers only</div>
+                        <div class="invalid-feedback">Please enter a valid username (letters and numbers only).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope"></i> Email *
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" required 
+                               value="{{ form.email.data if form else '' }}">
+                        <div class="invalid-feedback">Please enter a valid email address.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">
+                            <i class="fas fa-phone"></i> Phone Number
+                        </label>
+                        <input type="tel" class="form-control" id="phone" name="phone" 
+                               pattern="[0-9]{10}" placeholder="10-digit number" value="{{ form.phone.data if form else '' }}">
+                        <div class="form-text">Optional, 10-digit number (e.g., 1234567890)</div>
+                        <div class="invalid-feedback">Please enter a valid 10-digit phone number.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock"></i> Password *
+                        </label>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               required minlength="6">
+                        <div class="form-text">Minimum 6 characters</div>
+                        <div class="invalid-feedback">Password must be at least 6 characters.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="confirm_password" class="form-label">
+                            <i class="fas fa-lock"></i> Confirm Password *
+                        </label>
+                        <input type="password" class="form-control" id="confirm_password" 
+                               name="confirm_password" required>
+                        <div class="invalid-feedback">Passwords do not match.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <i class="fas fa-user-plus"></i> Create Account
+                    </button>
+                </form>
+
+                <div class="text-center">
+                    <p class="mb-0">Already have an account? 
+                        <a href="{{ url_for('login') }}" class="text-primary">Login here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const form = this;
+    const username = document.getElementById('username');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const usernameRegex = /^[a-zA-Z0-9]{3,20}$/;
+
+    // Reset invalid feedback
+    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+    // Validate username
+    if (!usernameRegex.test(username.value)) {
+        e.preventDefault();
+        username.classList.add('is-invalid');
+        return;
+    }
+
+    // Validate password match
+    if (password.value !== confirmPassword.value) {
+        e.preventDefault();
+        confirmPassword.classList.add('is-invalid');
+        return;
+    }
+
+    // Let HTML5 validation handle the rest (email, phone, required fields)
+});
+</script>
+{% endblock %}

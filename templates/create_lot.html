@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Create Parking Lot - Vehicle Parking App{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-plus-circle text-success"></i> Create New Parking Lot</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="createLotForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">
+                                    <i class="fas fa-building"></i> Location Name *
+                                </label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       placeholder="e.g., City Mall Parking" required maxlength="100">
+                                <div class="form-text">Enter a descriptive name for the parking location</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="price" class="form-label">
+                                    <i class="fas fa-rupee-sign"></i> Price per Hour *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" class="form-control" id="price" name="price" 
+                                           step="0.01" min="0.01" max="999.99" placeholder="20.00" required>
+                                </div>
+                                <div class="form-text">Set the hourly parking rate</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address" class="form-label">
+                            <i class="fas fa-map-marker-alt"></i> Address *
+                        </label>
+                        <textarea class="form-control" id="address" name="address" rows="3" 
+                                  placeholder="Enter complete address..." required maxlength="255"></textarea>
+                        <div class="form-text">Provide the full address of the parking location</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="pin_code" class="form-label">
+                                    <i class="fas fa-map-pin"></i> PIN Code *
+                                </label>
+                                <input type="text" class="form-control" id="pin_code" name="pin_code" 
+                                       pattern="[0-9]{6}" placeholder="380001" required maxlength="6">
+                                <div class="form-text">6-digit PIN code</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="max_spots" class="form-label">
+                                    <i class="fas fa-car"></i> Number of Parking Spots *
+                                </label>
+                                <input type="number" class="form-control" id="max_spots" name="max_spots" 
+                                       min="1" max="500" placeholder="50" required>
+                                <div class="form-text">Total number of 4-wheeler parking spots</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6><i class="fas fa-info-circle text-info"></i> Preview</h6>
+                                <div id="lotPreview">
+                                    <p class="text-muted">Fill in the details above to see a preview</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary me-2" onclick="previewLot()">
+                                <i class="fas fa-eye"></i> Preview
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Create Parking Lot
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cost Calculator -->
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-calculator"></i> Revenue Calculator</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted">Daily (50% occupancy)</h6>
+                            <h5 class="text-success" id="dailyRevenue">₹0</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted">Weekly</h6>
+                            <h5 class="text-success" id="weeklyRevenue">₹0</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted">Monthly</h6>
+                            <h5 class="text-success" id="monthlyRevenue">₹0</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <h6 class="text-muted">Max Daily</h6>
+                            <h5 class="text-success" id="maxRevenue">₹0</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewLot() {
+    const name = document.getElementById('name').value.trim();
+    const price = document.getElementById('price').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const pinCode = document.getElementById('pin_code').value.trim();
+    const maxSpots = document.getElementById('max_spots').value.trim();
+    
+    if (!(name && price && address && pinCode && maxSpots)) {
+        document.getElementById('lotPreview').innerHTML = '<p class="text-muted">Fill in all required fields to preview</p>';
+        return;
+    }
+    
+    const preview = `
+        <div class="row">
+            <div class="col-md-8">
+                <h6><strong>${name}</strong></h6>
+                <p class="mb-1"><i class="fas fa-map-marker-alt text-muted"></i> ${address}</p>
+                <p class="mb-1"><i class="fas fa-map-pin text-muted"></i> PIN: ${pinCode}</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="badge bg-success mb-1">₹${parseFloat(price).toFixed(2)}/hour</div><br>
+                <div class="badge bg-primary">${maxSpots} spots</div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('lotPreview').innerHTML = preview;
+    updateRevenueCalculator();
+}
+
+function updateRevenueCalculator() {
+    const price = parseFloat(document.getElementById('price').value) || 0;
+    const maxSpots = parseInt(document.getElementBy фев.1('max_spots').value) || 0;
+    
+    if (price > 0 && maxSpots > 0) {
+        const maxDaily = price * maxSpots * 24;
+        const dailyRevenue = price * maxSpots * 6 * 0.5;
+        const weeklyRevenue = dailyRevenue * 7;
+        const monthlyRevenue = dailyRevenue * 30;
+        
+        document.getElementById('maxRevenue').textContent = '₹' + maxDaily.toLocaleString('en-IN');
+        document.getElementById('dailyRevenue').textContent = '₹' + dailyRevenue.toLocaleString('en-IN');
+        document.getElementById('weeklyRevenue').textContent = '₹' + weeklyRevenue.toLocaleString('en-IN');
+        document.getElementById('monthlyRevenue').textContent = '₹' + monthlyRevenue.toLocaleString('en-IN');
+    } else {
+        document.getElementById('maxRevenue').textContent = '₹0';
+        document.getElementById('dailyRevenue').textContent = '₹0';
+        document.getElementById('weeklyRevenue').textContent = '₹0';
+        document.getElementById('monthlyRevenue').textContent = '₹0';
+    }
+}
+
+// Auto-update calculator and preview on input
+document.querySelectorAll('#createLotForm input, #createLotForm textarea').forEach(function(element) {
+    element.addEventListener('input', function() {
+        previewLot();
+    });
+});
+
+// Form validation
+document.getElementById('createLotForm').addEventListener('submit', function(e) {
+    const pinCode = document.getElementById('pin_code').value.trim();
+    const pinCodeRegex = /^[0-9]{6}$/;
+    
+    if (!pinCodeRegex.test(pinCode)) {
+        e.preventDefault();
+        alert('PIN code must be exactly 6 digits!');
+        return false;
+    }
+    
+    const price = parseFloat(document.getElementById('price').value);
+    if (price <= 0) {
+        e.preventDefault();
+        alert('Price must be greater than 0!');
+        return false;
+    }
+    
+    const maxSpots = parseInt(document.getElementById('max_spots').value);
+    if (maxSpots <= 0 || maxSpots > 500) {
+        e.preventDefault();
+        alert('Number of spots must be between 1 and 500!');
+        return false;
+    }
+    
+    return confirm('Create this parking lot with ' + maxSpots + ' spots?');
+});
+</script>
+{% endblock %}
